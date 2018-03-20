@@ -1,5 +1,6 @@
 import random
 import math
+import operator
 from environment import Agent, Environment
 from planner import RoutePlanner
 from simulator import Simulator
@@ -8,7 +9,7 @@ class LearningAgent(Agent):
     """ An agent that learns to drive in the Smartcab world.
         This is the object you will be modifying. """ 
 
-    def __init__(self, env, learning=False, epsilon=1.0, alpha=0.5):
+    def __init__(self, env, learning=True, epsilon=1.0, alpha=0.5):
         super(LearningAgent, self).__init__(env)     # Set the agent in the evironment 
         self.planner = RoutePlanner(self.env, self)  # Create a route planner
         self.valid_actions = self.env.valid_actions  # The set of valid actions
@@ -39,7 +40,9 @@ class LearningAgent(Agent):
         # Update epsilon using a decay function of your choice
         # Update additional class parameters as needed
         # If 'testing' is True, set epsilon and alpha to 0
-
+        if testing:
+            self.epsilon = 0
+            self.alpha = 0
         return None
 
     def build_state(self):
@@ -70,9 +73,9 @@ class LearningAgent(Agent):
         ###########
         # Calculate the maximum Q-value of all actions for a given state
 
-        maxQ = None
+        maxQ = max(self.Q[state].iteritems(), key=operator.itemgetter(1))[0]
 
-        return maxQ 
+        return self.Q[state][maxQ] 
 
 
     def createQ(self, state):
@@ -85,6 +88,11 @@ class LearningAgent(Agent):
         # If it is not, create a new dictionary for that state
         #   Then, for each action available, set the initial Q-value to 0.0
 
+        if self.learning:
+            if self.Q.get(state,None) is None:
+                self.Q[state]={}
+                for action in self.valid_actions:
+                    self.Q[state][action]=0.0
         return
 
 
@@ -95,7 +103,7 @@ class LearningAgent(Agent):
         # Set the agent state and default action
         self.state = state
         self.next_waypoint = self.planner.next_waypoint()
-        action = random.choice(self.valid_actions)
+        # action = random.choice(self.valid_actions)
 
         ########### 
         ## TO DO ##
@@ -103,6 +111,20 @@ class LearningAgent(Agent):
         # When not learning, choose a random action
         # When learning, choose a random action with 'epsilon' probability
         #   Otherwise, choose an action with the highest Q-value for the current state
+
+
+        if self.learning:
+            if random.random() < self.epsilon:
+                action = random.choice(self.valid_actions)
+            else:
+                maxQ = self.get_maxQ(state)
+                maxActions = []
+                for action_key in self.Q[state]:
+                    if self.Q[state][action_key] == maxQ:
+                        maxActions.append(action_key)
+                action = random.choice(maxActions)
+        else:
+            action = random.choice(self.valid_actions)
  
         return action
 
@@ -117,7 +139,8 @@ class LearningAgent(Agent):
         ###########
         # When learning, implement the value iteration update rule
         #   Use only the learning rate 'alpha' (do not use the discount factor 'gamma')
-
+        if self.learning:
+            self.Q[state][action] = self.Q[state][action] * (1-self.alpha) + reward*self.alpha
         return
 
 
