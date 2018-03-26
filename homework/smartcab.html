@@ -11903,7 +11903,7 @@ div#notebook {
 </li>
 <li><p>驾驶代理程序获得了正面和负面的奖励</p>
 </li>
-<li><p>当交通灯绿色时，获得正面和负面的奖励。当交通灯红色时，获得正面奖励。</p>
+<li><p>当交通灯绿灯且路口有车经过，小车有正奖励。当交通灯绿灯且路口无车经过，小车有负奖励。当交通灯红色时，小车有正奖励。</p>
 </li>
 </ul>
 
@@ -13175,7 +13175,9 @@ mZlViRMsMzMzMzOzKnGCZWZmZmZmViX/D5P2Bgh9TnHoAAAAAElFTkSuQmCC
 </li>
 </ul>
 <ul>
-<li>与学习效率相关性最高的特征:waypoint，因为优化的线路能快速到达终点。deadline是一个优化效率的指标，但是本项目起点、终点不停改变，deadline 没有实际意义，且deanline的大小会使状态空间增加一个数量级，所以放弃这个特征。</li>
+<li><p>与学习效率相关性最高的特征:waypoint，因为优化的线路能快速到达终点。</p>
+<p>deadline是一个优化效率的指标，体现了时效性地信息。但是首先这个时效性地信息是没有意义的，因为在每次训练过程中，起点、终点在随机变动，所以用它训练出来的 Q表在不同的环境下不具备泛化性，使用它反而会模糊小车的行动。其次选择deadline大概会将状态空间增加14倍（因为默认的地图尺寸是 6x8，1～6+8，共有14个取值），大幅增加状态空间的大小，导致小车很难训练。最后，这个deadline 还有某种 “急于求成” 的意思，即便有意义，也会过分追求时间效率——而这一特征和安全性在某种程度上存在对立关系，也会引入一定的问题。</p>
+</li>
 </ul>
 
 </div>
@@ -13209,7 +13211,7 @@ mZlViRMsMzMzMzOzKnGCZWZmZmZmViX/D5P2Bgh9TnHoAAAAAElFTkSuQmCC
 <p><strong>回答：</strong></p>
 <p>选择waypoint,light,left,oncoming,right</p>
 <ul>
-<li>waypoint 有三个方向（去除None，因为 planner.py 中的None 状态表明小车已到终点。）</li>
+<li>waypoint 有三个方向（去除None，当 waypoint 取 None 的时候，是小车到达终点的情况。在小车到达终点之后，我们就停止本次训练的模拟而进入了下一次训练，所以它就不需要被计入状态空间了）</li>
 <li>light 有两个状态 红绿 ，根据environment.py的<code>TrafficLight.valid_states</code></li>
 <li>left 有四个状态 ，根据environment.py的 <code>valid_actions</code></li>
 <li>oncoming 有四个状态 ，根据environment.py的 <code>valid_actions</code></li>
@@ -16592,6 +16594,14 @@ a=0.99</p>
 <div class="text_cell_render border-box-sizing rendered_html">
 <p><strong>回答：</strong></p>
 <p>因为折扣因子 'gamma'决定了对未来奖励的重视程度，而此项目即是对可靠性的重视程度，如果引入折扣因子，会导致策略偏向可靠性，导致安全性降低。而我们首先要保证的就是安全性。</p>
+<blockquote><p>这边你可从数学公式出发，讨论增加的未来奖励项的含义以及它对更新公式的影响是怎样的，然后对整个 Q-table 中的数值的影响又是怎样的。</p>
+</blockquote>
+<p><img src="https://wikimedia.org/api/rest_v1/media/math/render/svg/390d024c2ee2a2c2f709642401a3a7b44f7b2e4e" alt="test"></p>
+<p><code>Q(S,A) ← (1-α)*Q(S,A) + α*[R + γ*maxQ(S',a)]</code></p>
+<p>增加的未来奖励项会使maxQ起作用，因为多了<code>γ*maxQ(S',a)</code>这一项，所以<code>α*R</code>对整个 Q-table的影响就减弱了</p>
+<blockquote><p>再次，你还可以从项目的特点出发，这边增加未来的奖励在这个项目情景下是否合理、有没有什么存在的问题</p>
+</blockquote>
+<p>因为该项目有两个非常重要的指标来评价：安全性和可靠性，而使用折扣因子'gamma'，会增加未来的奖励，但开车还是眼前最重要！不能因为可能早到终点而忽视眼前的风险，故使用折扣因子'gamma'在本项目不合理。</p>
 
 </div>
 </div>
